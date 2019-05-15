@@ -1,31 +1,28 @@
 
 import * as methods from "methods";
 import * as path from "path";
+import * as util from "util";
+
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
-function split2(path, sep) {
+const wildcards = [':', '*'];
+
+function split2(path: string, sep: string): string[] {
     var res = path.split(sep);
-    if (res.length == 1) {
-        return res;
-    }
-    if (res[0] == '') {
-        return ['', res.slice(1).join(sep)];
-    }
-    return [res[0], res.slice(1).join(sep)];
+    return res.length == 1 ? res : [res[0], res.slice(1).join(sep)];
 }
 
 function countParams(path: string): number {
     let n = 0;
-    const wildcards = [':', '*'];
     for (let i = 0; i < path.length; i++) {
         if (wildcards.indexOf(path[i]) < 0) {
             continue;
         }
-        n++
+        n++;
     }
     if (n >= 255) {
-        return 255
+        return 255;
     }
     return n;
 }
@@ -60,9 +57,8 @@ class Tree {
 
             [n.children[newPos - 1], n.children[newPos]] = [n.children[newPos], n.children[newPos - 1]]
 
-            newPos--
+            newPos--;
         }
-
         if (newPos != pos) {
             n.indices = n.indices.slice(0, newPos)
                 + n.indices.slice(pos, pos + 1)
@@ -79,7 +75,6 @@ class Tree {
         let numParams = countParams(path);
         path = new Router().calculateAbsolutePath(path);
         let fullPath = path;
-        const wildChilds = [':', '*'];
         if (n.path.length > 0 || n.children.length > 0) {
 
             walk: for (; ;) {
@@ -116,6 +111,7 @@ class Tree {
                     })
 
                     n.children = [child];
+                    // 取出非公共部分的首字母
                     n.indices = n.path[i];
                     // 取出公共部分作为父级(如果没有公共部分，那么会是 '')
                     n.path = path.slice(0, i);
@@ -127,8 +123,6 @@ class Tree {
                 // 没有公共部分 或者 公共部分 小于 path 
                 if (i < path.length) {
 
-                    //n.path useryyyy
-                    //path userxxxxx
                     // 提取出非公共部分
                     path = path.slice(i);
                     if (n.wildChild) {
@@ -141,7 +135,7 @@ class Tree {
                         numParams--;
                         // Check if the wildcard matche
                         if (path.length >= n.path.length && n.path == path.slice(0, n.path.length)) {
-                            	// check for longer wildcard, e.g. :name and :names
+                            // check for longer wildcard, e.g. :name and :names
                             if (n.path.length >= path.length || path[n.path.length] == '/') {
                                 continue walk;
                             }
@@ -176,7 +170,7 @@ class Tree {
                         }
                     }
 
-                    if (wildChilds.indexOf(c) < 0) {
+                    if (wildcards.indexOf(c) < 0) {
                         n.indices += c;
                         let child = new Tree({
                             maxParams: numParams
@@ -209,7 +203,6 @@ class Tree {
         let offset = 0;
 
         const fullPath = path;
-        const wildcards = [':', '*'];
         for (let [i, max] = [0, path.length]; numParams > 0; i++) {
 
             let c = path[i];
@@ -253,6 +246,7 @@ class Tree {
                 n.priority++;
                 numParams--;
 
+                // 说明 : 后面还有子路由  /:id/xxxx
                 if (end < max) {
                     n.path = path.slice(offset, end);
                     offset = end;
@@ -313,8 +307,97 @@ class Tree {
 
     }
 
-    getValue() {
+    getValue(path: string, params: any) {
+        let p = params;
+        let n: Tree = this;
+        let handlers = null;
+        let tsr;
+        walk: for (; ;) {
+            if (path.length > n.path.length) {
+                if (path.slice(0, n.path.length) == n.path) {
+                    path = path.slice(n.path.length);
 
+                    if (!n.wildChild) {
+                        let c = path[0];
+
+                        for (let i = 0; i < n.indices.length; i++) {
+                            if (c == n.indices[i]) {
+                                n = n.children[i]
+                                continue walk;
+                            }
+                        }
+
+                        tsr = path == '/' && n.handlers != null;
+                        return { handlers, tsr, params: p }
+                    }
+
+                    n = n.children[0];
+
+                    if (n.nType == NodeType.PARAM) {
+
+                        let end = 0;
+                        for (; end < path.length && path[end] != '/';) {
+                            end++;
+                        }
+
+                        p[n.path.slice(1)] = path.slice(0, end);
+
+                        if (end < path.length) {
+                            if (n.children.length > 0) {
+                                path = path.slice(end);
+                                n = n.children[0];
+                                continue walk;
+                            }
+
+                            // 
+                            tsr = path.length == end + 1;
+                            return { handlers, tsr, params: p }
+                        }
+                        handlers = n.handlers as any;
+                        if (handlers != null) {
+                            return { handlers, tsr, params: p }
+                        }
+
+                        if (n.children.length == 1) {
+                            n = n.children[0];
+                            tsr = n.path == '/' && n.handlers != null;
+                        }
+
+                        return { handlers, tsr, params: p }
+                    } else if (n.nType == NodeType.CATCHALL) {
+                        p[n.path.slice(2)] = path;
+                        handlers = n.handlers as any;
+                        return { handlers, tsr, params: p }
+                    } else {
+                        throw new Error('invalid node type');
+                    }
+
+                }
+            } else if (path == n.path) {
+                handlers = n.handlers as any;
+                if (handlers != null) {
+                    return { handlers, tsr, params: p }
+                }
+                if (path == '/' && n.wildChild && n.nType != NodeType.ROOT) {
+                    tsr = true;
+                    return { handlers, tsr, params: p }
+                }
+
+                for (let i = 0; i < n.indices.length; i++) {
+                    if (n.indices[i] == '/') {
+                        n = n.children[i]
+                        tsr = (n.path.length == 1 && n.handlers != null) ||
+                            (n.nType == NodeType.CATCHALL && n.children[0].handlers != null)
+                        return { handlers, tsr, params: p }
+                    }
+                }
+
+                return { handlers, tsr, params: p }
+            }
+
+            tsr = (path == '/') || (n.path.length == path.length + 1 && n.path[path.length] == '/' && path == n.path.slice(0, n.path.length - 1) && n.handlers != null)
+            return { handlers, tsr, params: p }
+        }
     }
 
     findCaseInsensitivePath() {
@@ -322,19 +405,6 @@ class Tree {
     }
 }
 
-
-
-// class MethodsTree {
-
-//     method: string;
-
-//     root: Tree;
-
-//     constructor() {
-
-//     }
-
-// }
 
 // declaration merging, merge rest verb 
 interface Router {
@@ -427,12 +497,13 @@ class Router {
 var tree = new Tree({ path: '' })
 
 
-tree.addRoute('/users/:id/courses/:courseId', function () { }, function () { })
+tree.addRoute('/users/:id/courses/*action', function () { }, function () { })
 // tree.addRoute('/usersixl/:id/courses/:courseId', function () { }, function () { })
 tree.addRoute('/teachers/:id/ixl', function () { }, function () { })
-tree.addRoute('/teaixl/:id/ixl', function () { }, function () { })   
+tree.addRoute('/teaixl/:id/ixl/', function () { }, function () { })
 
-console.log(tree);
+console.log(util.inspect(tree, { showHidden: false, depth: 2 }))
 
 
-// handlers, params, tsr := root.getValue(rPath, c.Params, unescape)
+// var a = tree.getValue('/teaixl/123/ixl/456/zjl', {});
+// console.log(a);
