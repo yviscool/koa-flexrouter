@@ -39,7 +39,7 @@ class Tree {
     maxParams: number = 0;
     wildChild: boolean = false;
 
-    constructor(partial: Partial<Tree>) {
+    constructor(partial?: Partial<Tree>) {
         Object.assign(this, partial)
     }
 
@@ -73,15 +73,15 @@ class Tree {
         this.priority++;
         let n: Tree = this;
         let numParams = countParams(path);
-        path = new Router().calculateAbsolutePath(path);
+        // path = new Router().calculateAbsolutePath(path);
         let fullPath = path;
         if (n.path.length > 0 || n.children.length > 0) {
 
-            walk: for (; ;) {
+            walk: while (true) {
                 if (numParams > n.maxParams) {
                     n.maxParams = numParams;
                 }
-                let i = 0
+                let i = 0;
                 let max = Math.min(path.length, n.path.length);
 
                 // 找到 path 和 n.path 的公共值 索引
@@ -364,12 +364,18 @@ class Tree {
                         }
 
                         return { handlers, tsr, params: p }
+
                     } else if (n.nType == NodeType.CATCHALL) {
+
                         p[n.path.slice(2)] = path;
                         handlers = n.handlers as any;
+
                         return { handlers, tsr, params: p }
+
                     } else {
+
                         throw new Error('invalid node type');
+
                     }
 
                 }
@@ -400,20 +406,18 @@ class Tree {
         }
     }
 
-    findCaseInsensitivePath() {
-
-    }
+    // findCaseInsensitivePath() { }
 }
 
 
 // declaration merging, merge rest verb 
 interface Router {
-    get(): Router;
-    post(): Router;
-    put(): Router;
-    head(): Router;
-    delete(): Router;
-    options(): Router;
+    get(basePath: string, ...middleware: Array<Function>): Router;
+    post(basePath: string, ...middleware: Array<Function>): Router;
+    put(basePath: string, ...middleware: Array<Function>): Router;
+    head(basePath: string, ...middleware: Array<Function>): Router;
+    delete(basePath: string, ...middleware: Array<Function>): Router;
+    options(basePath: string, ...middleware: Array<Function>): Router;
     trace();
     copy();
     lock();
@@ -431,7 +435,7 @@ interface Router {
     notify();
     subscribe();
     unsubscribe();
-    patch(): Router;
+    patch(basePath: string, ...middleware: Array<Function>): Router;
     search();
     connect();
 }
@@ -439,21 +443,37 @@ interface Router {
 
 class Router {
 
+    basePath: string = '/';
 
-    basePath: string;
+    defaultHandlers: Function[] = [];
 
-    trees: Map<string, Tree>;
+    trees: Map<string, Tree> = new Map();
 
-    constructor() {
+    constructor(partial?: Partial<Router>) {
+        Object.assign(this, partial);
+    }
 
-        this.basePath = '/';
+    group(partial?: Partial<Router>): Router {
+        return new Router({
+            ...partial,
+            trees: this.trees
+        });
     }
 
     handle(method: string, path: string, ...middlewares: Function[]) {
 
         const absolutePath = this.calculateAbsolutePath(path);
 
-        this.addRoute(method, absolutePath, middlewares)
+        middlewares = [...this.defaultHandlers, ...middlewares];
+
+        let tree = this.trees.get(method);
+
+        if (!tree) {
+            tree = new Tree();
+            this.trees.set(method, tree);
+        }
+
+        tree.addRoute(absolutePath, ...middlewares);
 
     }
 
@@ -473,10 +493,6 @@ class Router {
         return finalPath;
     }
 
-    addRoute(httpMethod: string, absolutePath: string, middlewares: Function[]) {
-
-    }
-
 }
 
 
@@ -494,16 +510,29 @@ class Router {
 
 
 
-var tree = new Tree({ path: '' })
+var router = new Router();
+var userRouter = router.group({ basePath: '/users' })
+var resourceRouter = router.group({ basePath: '/resources' })
+
+userRouter
+    .get('/:id/courses/*action', async (ctx, next) => { })
+    .post('/:id/course/*action', async (ctx, next) => { })
+
+resourceRouter
+    .get('/:id', async (ctx, next) => { })
+
+console.log(router.trees);
+
+// var tree = new Tree({ path: '' })
 
 
-tree.addRoute('/users/:id/courses/*action', function () { }, function () { })
-// tree.addRoute('/usersixl/:id/courses/:courseId', function () { }, function () { })
-tree.addRoute('/teachers/:id/ixl', function () { }, function () { })
-tree.addRoute('/teaixl/:id/ixl/', function () { }, function () { })
 
-console.log(util.inspect(tree, { showHidden: false, depth: 2 }))
+// tree.addRoute('/users/:id/courses/*action', function () { }, function () { })
+// // tree.addRoute('/usersixl/:id/courses/:courseId', function () { }, function () { })
+// tree.addRoute('/teachers/:id/ixl', function () { }, function () { })
+// tree.addRoute('/teaixl/:id/ixl/', function () { }, function () { })
+
+// console.log(util.inspect(tree, { showHidden: false, depth: 2 }))
 
 
 // var a = tree.getValue('/teaixl/123/ixl/456/zjl', {});
-// console.log(a);
