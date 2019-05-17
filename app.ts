@@ -3,11 +3,11 @@ import * as methods from "methods";
 import * as compose from "koa-compose";
 import * as path from "path";
 import * as util from "util";
+import { Middleware } from "koa";
 import * as Koa from "koa";
 import * as Debug from "debug";
 
 const debug = Debug('router');
-
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
@@ -38,7 +38,7 @@ class Tree {
     // 分裂的所有分支第一个字符的相加值, 每个字符的索引对应 children 的索引，方便快速找到分支
     indices: string = "";
     children: Tree[] = [];
-    handlers: Function[] = [];
+    handlers: Middleware[] | null = [];
     priority: number = 0;
     nType: NodeType = NodeType.DEFAULT;
     maxParams: number = 0;
@@ -74,7 +74,7 @@ class Tree {
         return newPos;
     }
 
-    addRoute(path: string, ...middlewares: Function[]) {
+    addRoute(path: string, middlewares: Middleware[]) {
         this.priority++;
         let n: Tree = this;
         let numParams = countParams(path);
@@ -120,7 +120,7 @@ class Tree {
                     n.indices = n.path[i];
                     // 取出公共部分作为父级(如果没有公共部分，那么会是 '')
                     n.path = path.slice(0, i);
-                    n.handlers = (null as any);
+                    n.handlers = null;
                     n.wildChild = false;
                 }
 
@@ -182,7 +182,9 @@ class Tree {
                     }
 
                     n.insertChild(numParams, path, middlewares);
+
                     return;
+
                 } else if (i == path.length) {
                     if (n.handlers != null) {
                         throw new Error('handlers are already registerd for path' + fullPath);
@@ -198,7 +200,7 @@ class Tree {
         }
     }
 
-    insertChild(numParams: number, path: string, middlewares: Function[]) {
+    insertChild(numParams: number, path: string, middlewares: Middleware[]) {
 
         let n: Tree = this;
         let offset = 0;
@@ -308,11 +310,14 @@ class Tree {
     }
 
     getValue(path: string, params: any = {}) {
-        let p = params;
+
         let n: Tree = this;
-        let handlers = null;
-        let tsr;
-        walk: for (; ;) {
+
+        let p = params;
+        let tsr: boolean = false;
+        let handlers: Middleware[] | null = null;
+
+        walk: while (true) {
             if (path.length > n.path.length) {
                 if (path.slice(0, n.path.length) == n.path) {
                     path = path.slice(n.path.length);
@@ -353,7 +358,9 @@ class Tree {
                             tsr = path.length == end + 1;
                             return { handlers, tsr, params: p }
                         }
-                        handlers = n.handlers as any;
+
+                        handlers = n.handlers;
+
                         if (handlers != null) {
                             return { handlers, tsr, params: p }
                         }
@@ -365,25 +372,29 @@ class Tree {
 
                         return { handlers, tsr, params: p }
 
-                    } else if (n.nType == NodeType.CATCHALL) {
+                    }
+
+                    if (n.nType == NodeType.CATCHALL) {
 
                         p[n.path.slice(2)] = path;
-                        handlers = n.handlers as any;
+                        handlers = n.handlers;
 
                         return { handlers, tsr, params: p }
 
-                    } else {
-
-                        throw new Error('invalid node type');
-
                     }
 
+                    throw new Error('invalid node type');
+
                 }
+
             } else if (path == n.path) {
-                handlers = n.handlers as any;
+
+                handlers = n.handlers;
+
                 if (handlers != null) {
                     return { handlers, tsr, params: p }
                 }
+
                 if (path == '/' && n.wildChild && n.nType != NodeType.ROOT) {
                     tsr = true;
                     return { handlers, tsr, params: p }
@@ -402,6 +413,7 @@ class Tree {
             }
 
             tsr = (path == '/') || (n.path.length == path.length + 1 && n.path[path.length] == '/' && path == n.path.slice(0, n.path.length - 1) && n.handlers != null)
+
             return { handlers, tsr, params: p }
         }
     }
@@ -412,12 +424,13 @@ class Tree {
 
 // declaration merging, merge rest verb 
 interface Router {
-    get(basePath: string, ...middleware: Array<Function>): Router;
-    post(basePath: string, ...middleware: Array<Function>): Router;
-    put(basePath: string, ...middleware: Array<Function>): Router;
-    head(basePath: string, ...middleware: Array<Function>): Router;
-    delete(basePath: string, ...middleware: Array<Function>): Router;
-    options(basePath: string, ...middleware: Array<Function>): Router;
+    get(path: string, ...middleware: Array<Middleware>): Router;
+    post(path: string, ...middleware: Array<Middleware>): Router;
+    put(path: string, ...middleware: Array<Middleware>): Router;
+    head(path: string, ...middleware: Array<Middleware>): Router;
+    delete(path: string, ...middleware: Array<Middleware>): Router;
+    options(path: string, ...middleware: Array<Middleware>): Router;
+    patch(path: string, ...middleware: Array<Middleware>): Router;
     trace();
     copy();
     lock();
@@ -435,7 +448,6 @@ interface Router {
     notify();
     subscribe();
     unsubscribe();
-    patch(basePath: string, ...middleware: Array<Function>): Router;
     search();
     connect();
 }
@@ -445,7 +457,7 @@ class Router {
 
     basePath: string = '/';
 
-    defaultHandlers: Function[] = [];
+    middlewares: Middleware[] = [];
 
     trees: Map<string, Tree> = new Map();
 
@@ -460,11 +472,11 @@ class Router {
         });
     }
 
-    handle(method: string, path: string, ...middlewares: Function[]) {
+    handle(method: string, path: string, ...middlewares: Middleware[]) {
 
         const absolutePath = this.calculateAbsolutePath(path);
 
-        middlewares = [...this.defaultHandlers, ...middlewares];
+        middlewares = [...this.middlewares, ...middlewares];
 
         let tree = this.trees.get(method);
 
@@ -473,7 +485,7 @@ class Router {
             this.trees.set(method, tree);
         }
 
-        tree.addRoute(absolutePath, ...middlewares);
+        tree.addRoute(absolutePath, middlewares);
 
     }
 
@@ -493,7 +505,7 @@ class Router {
 
     }
 
-    routes(): Function {
+    routes(): Middleware {
 
         const router = this;
 
@@ -501,13 +513,29 @@ class Router {
 
             debug('%s %s', ctx.method, ctx.path)
 
-            const { params, handlers } = router.match(ctx.path, ctx.method);
+            const { params, handlers, tsr } = router.match(ctx.path, ctx.method);
 
-            if (!handlers) return next();
+            if (handlers) {
 
-            ctx.params = params;
+                ctx.params = params;
 
-            return compose(handlers as any)(ctx, next);
+                return compose(handlers)(ctx, next);
+
+            }
+
+            if (ctx.method!= "CONNECT" && ctx.path != "/" ){
+                if tsr && engine.RedirectTrailingSlash {
+                    redirectTrailingSlash(c)
+                    return
+                }
+                if engine.RedirectFixedPath && redirectFixedPath(c, root, engine.RedirectFixedPath) {
+                    return
+                }
+            }
+
+
+            return next();
+
 
         }
 
@@ -515,14 +543,14 @@ class Router {
 
     match(path, method) {
         const tree = this.trees.get(method);
-        return tree ? tree.getValue(path) : { params: {}, handlers: null }
+        return tree ? tree.getValue(path) : { params: {}, handlers: null , tsr: false}
     }
 }
 
 
 (methods as string[]).forEach(method => {
 
-    Router.prototype[method] = function (path: string, ...middlewares: Function[]) {
+    Router.prototype[method] = function (path: string, ...middlewares: Middleware[]) {
 
         this.handle(method.toLocaleUpperCase(), path, ...middlewares);
 
@@ -536,55 +564,45 @@ class Router {
 
 var router = new Router();
 
-var userRouter = router.group({ 
-    basePath: '/users' ,
-    defaultHandlers: [
-        async function (ctx, next){
+var userRouter = router.group({
+    basePath: '/users',
+    middlewares: [
+        async function (ctx, next) {
 
             console.log('ahah')
 
             return next();
         }
-
     ]
 })
 
 // var resourceRouter = router.group({ basePath: '/resources' })
 
 userRouter
-    .get('/:id/courses/*action', async (ctx, next) => { 
+    .get('/:id/courses/*action', async (ctx, next) => {
         ctx.body = ctx.params;
     })
     .post('/:id/course/*action', async (ctx, next) => {
         ctx.body = ctx.params;
-     })
+    })
 
 // resourceRouter
 //     .get('/:id', async (ctx, next) => { })
 
 
-// var tree = new Tree({ path: '' })
-
-
-
 // router.get('/users/:id', async (ctx, next) => { return next() }, async (ctx, next) => {
-    
-
-//     ctx.body = ctx.params;
-
-// })
 // router.get('/users/:id/resource', function () { }, function () { })
-// // tree.addRoute('/usersixl/:id/courses/:courseId', function () { }, function () { })
-// tree.addRoute('/teachers/:id/ixl', function () { }, function () { })
-// tree.addRoute('/teaixl/:id/ixl/', function () { }, function () { })
+// router.addRoute('/teachers/:id/ixl', function () { }, function () { })
+// router.addRoute('/teaixl/:id/ixl/', function () { }, function () { })
+
+// var pararms = tree.getValue('/teaixl/123/ixl/456/zjl', {});
 
 debug(util.inspect(router.trees, { showHidden: false, depth: null }))
 
-// var a = tree.getValue('/teaixl/123/ixl/456/zjl', {});
+
 
 var koa = new Koa();
 
-koa.use(router.routes() as any)
-
+koa.use(router.routes())
 
 koa.listen(3000)
