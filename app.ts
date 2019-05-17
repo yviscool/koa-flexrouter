@@ -1,7 +1,12 @@
 
 import * as methods from "methods";
+import * as compose from "koa-compose";
 import * as path from "path";
 import * as util from "util";
+import * as Koa from "koa";
+import * as Debug from "debug";
+
+const debug = Debug('router');
 
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
@@ -30,7 +35,7 @@ function countParams(path: string): number {
 class Tree {
 
     path: string = "";
-    // 分裂的所有分支第一个字符的相加值
+    // 分裂的所有分支第一个字符的相加值, 每个字符的索引对应 children 的索引，方便快速找到分支
     indices: string = "";
     children: Tree[] = [];
     handlers: Function[] = [];
@@ -147,11 +152,7 @@ class Tree {
                         }
                         let prefix = fullPath.slice(0, fullPath.indexOf(pathSeg)) + n.path;
 
-                        throw new Error("'" + pathSeg +
-                            "' in new path '" + fullPath +
-                            "' conflicts with existing wildcard '" + n.path +
-                            "' in existing prefix '" + prefix +
-                            "'");
+                        throw new Error(`${pathSeg} in new path ${fullPath} conflicts with existing wildcard ${n.path} in existing prefix ${prefix}`);
                     }
 
                     let c = path[0];
@@ -285,7 +286,7 @@ class Tree {
                 n.children = [child];
                 n.indices = path[i];
                 n = child;
-                n.priority++
+                n.priority++;
 
                 // second node: node holding the variable
                 child = new Tree({
@@ -297,17 +298,16 @@ class Tree {
                 })
                 n.children = [child]
 
-                return
+                return;
             }
 
         }
-
         n.path = path.slice(offset);
         n.handlers = middlewares;
 
     }
 
-    getValue(path: string, params: any) {
+    getValue(path: string, params: any = {}) {
         let p = params;
         let n: Tree = this;
         let handlers = null;
@@ -477,6 +477,8 @@ class Router {
 
     }
 
+
+
     calculateAbsolutePath(relativePath: string): string {
 
         if (relativePath == '') {
@@ -487,12 +489,34 @@ class Router {
         // 计算出绝对路径  basePath + relativePath =>   /bash/xxxx (如果relativePath以/结尾,那么 xxx后面也会以/结尾)
         const appendSlash = relativePath.slice(-1) == '/' && finalPath.slice(-1) != '/';
 
-        if (appendSlash) {
-            return finalPath + '/';
-        }
-        return finalPath;
+        return appendSlash ? finalPath + '/' : finalPath;
+
     }
 
+    routes(): Function {
+
+        const router = this;
+
+        return function dispatch(ctx, next) {
+
+            debug('%s %s', ctx.method, ctx.path)
+
+            const { params, handlers } = router.match(ctx.path, ctx.method);
+
+            if (!handlers) return next();
+
+            ctx.params = params;
+
+            return compose(handlers as any)(ctx, next);
+
+        }
+
+    }
+
+    match(path, method) {
+        const tree = this.trees.get(method);
+        return tree ? tree.getValue(path) : { params: {}, handlers: null }
+    }
 }
 
 
@@ -500,7 +524,7 @@ class Router {
 
     Router.prototype[method] = function (path: string, ...middlewares: Function[]) {
 
-        this.handle(method, path, ...middlewares);
+        this.handle(method.toLocaleUpperCase(), path, ...middlewares);
 
         return this;
 
@@ -511,28 +535,56 @@ class Router {
 
 
 var router = new Router();
-var userRouter = router.group({ basePath: '/users' })
-var resourceRouter = router.group({ basePath: '/resources' })
+
+var userRouter = router.group({ 
+    basePath: '/users' ,
+    defaultHandlers: [
+        async function (ctx, next){
+
+            console.log('ahah')
+
+            return next();
+        }
+
+    ]
+})
+
+// var resourceRouter = router.group({ basePath: '/resources' })
 
 userRouter
-    .get('/:id/courses/*action', async (ctx, next) => { })
-    .post('/:id/course/*action', async (ctx, next) => { })
+    .get('/:id/courses/*action', async (ctx, next) => { 
+        ctx.body = ctx.params;
+    })
+    .post('/:id/course/*action', async (ctx, next) => {
+        ctx.body = ctx.params;
+     })
 
-resourceRouter
-    .get('/:id', async (ctx, next) => { })
+// resourceRouter
+//     .get('/:id', async (ctx, next) => { })
 
-console.log(router.trees);
 
 // var tree = new Tree({ path: '' })
 
 
 
-// tree.addRoute('/users/:id/courses/*action', function () { }, function () { })
+// router.get('/users/:id', async (ctx, next) => { return next() }, async (ctx, next) => {
+    
+
+//     ctx.body = ctx.params;
+
+// })
+// router.get('/users/:id/resource', function () { }, function () { })
 // // tree.addRoute('/usersixl/:id/courses/:courseId', function () { }, function () { })
 // tree.addRoute('/teachers/:id/ixl', function () { }, function () { })
 // tree.addRoute('/teaixl/:id/ixl/', function () { }, function () { })
 
-// console.log(util.inspect(tree, { showHidden: false, depth: 2 }))
-
+debug(util.inspect(router.trees, { showHidden: false, depth: null }))
 
 // var a = tree.getValue('/teaixl/123/ixl/456/zjl', {});
+
+var koa = new Koa();
+
+koa.use(router.routes() as any)
+
+
+koa.listen(3000)
