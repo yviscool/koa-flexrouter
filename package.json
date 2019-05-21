@@ -1,12 +1,28 @@
 {
-  "name": "router",
+  "name": "koa-flexrouter",
   "version": "1.0.0",
-  "description": "",
+  "description": "flexrouter for koa",
+  "keywords": [
+    "koa",
+    "koa-middleware",
+    "router",
+    "flexrouter"
+  ],
+  "bugs": {
+    "url": "https://github.com/yviscool/koa-flexrouter/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yviscool/koa-flexrouter"
+  },
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "engines": {
+    "node": ">=8.9.0"
+  },
+  "author": "YV",
   "license": "ISC",
   "dependencies": {
     "koa-compose": "^4.1.0",

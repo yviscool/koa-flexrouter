@@ -5,9 +5,8 @@ import * as path from "path";
 import * as util from "util";
 import { Middleware } from "koa";
 import * as Koa from "koa";
-import * as Debug from "debug";
 
-const debug = Debug('router');
+const debug = require('debug')('router');   
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
@@ -105,13 +104,13 @@ class Tree {
                         wildChild: n.wildChild,
                         indices: n.indices,
                         children: n.children,
-                        handlers: n.handlers,
+                        handlers: n.handlers,   
                         priority: n.priority - 1
                     });
 
                     child.children.forEach(tree => {
                         if (tree.maxParams > child.maxParams) {
-                            child.maxParams = tree.maxParams
+                            child.maxParams = tree.maxParams;
                         }
                     })
 
@@ -130,14 +129,18 @@ class Tree {
 
                     // 提取出非公共部分
                     path = path.slice(i);
+
                     if (n.wildChild) {
+
                         n = n.children[0];
                         n.priority++;
 
                         if (numParams > n.maxParams) {
                             n.maxParams = numParams;
                         }
+
                         numParams--;
+
                         // Check if the wildcard matche
                         if (path.length >= n.path.length && n.path == path.slice(0, n.path.length)) {
                             // check for longer wildcard, e.g. :name and :names
@@ -147,9 +150,11 @@ class Tree {
                         }
 
                         let pathSeg = path;
+
                         if (n.nType != NodeType.CATCHALL) {
                             pathSeg = split2(path, '/')[0];
                         }
+
                         let prefix = fullPath.slice(0, fullPath.indexOf(pathSeg)) + n.path;
 
                         throw new Error(`${pathSeg} in new path ${fullPath} conflicts with existing wildcard ${n.path} in existing prefix ${prefix}`);
@@ -306,7 +311,6 @@ class Tree {
         }
         n.path = path.slice(offset);
         n.handlers = middlewares;
-
     }
 
     getValue(path: string, params: any = {}) {
@@ -320,6 +324,7 @@ class Tree {
         walk: while (true) {
             if (path.length > n.path.length) {
                 if (path.slice(0, n.path.length) == n.path) {
+
                     path = path.slice(n.path.length);
 
                     if (!n.wildChild) {
@@ -455,11 +460,12 @@ interface Router {
 
 class Router {
 
-    basePath: string = '/';
+    // bastpath
+    path: string = '/';
 
     middlewares: Middleware[] = [];
 
-    trees: Map<string, Tree> = new Map();
+    private trees: Map<string, Tree> = new Map();
 
     constructor(partial?: Partial<Router>) {
         Object.assign(this, partial);
@@ -494,10 +500,10 @@ class Router {
     calculateAbsolutePath(relativePath: string): string {
 
         if (relativePath == '') {
-            return this.basePath;
+            return this.path;
         }
 
-        const finalPath = path.join(this.basePath, relativePath);
+        const finalPath = path.join(this.path, relativePath);
         // 计算出绝对路径  basePath + relativePath =>   /bash/xxxx (如果relativePath以/结尾,那么 xxx后面也会以/结尾)
         const appendSlash = relativePath.slice(-1) == '/' && finalPath.slice(-1) != '/';
 
@@ -524,13 +530,13 @@ class Router {
             }
 
             if (ctx.method!= "CONNECT" && ctx.path != "/" ){
-                if tsr && engine.RedirectTrailingSlash {
-                    redirectTrailingSlash(c)
+                if (tsr && !ctx.RedirectTrailingSlash ) {
+                    // redirectTrailingSlash(c)
                     return
                 }
-                if engine.RedirectFixedPath && redirectFixedPath(c, root, engine.RedirectFixedPath) {
-                    return
-                }
+                // if engine.RedirectFixedPath && redirectFixedPath(c, root, engine.RedirectFixedPath) {
+                //     return
+                // }
             }
 
 
@@ -565,7 +571,7 @@ class Router {
 var router = new Router();
 
 var userRouter = router.group({
-    basePath: '/users',
+    path: '/users',
     middlewares: [
         async function (ctx, next) {
 
@@ -578,13 +584,13 @@ var userRouter = router.group({
 
 // var resourceRouter = router.group({ basePath: '/resources' })
 
-userRouter
-    .get('/:id/courses/*action', async (ctx, next) => {
+router
+    .get('/xxx/:id/:zjl', async (ctx, next) => {
         ctx.body = ctx.params;
     })
-    .post('/:id/course/*action', async (ctx, next) => {
-        ctx.body = ctx.params;
-    })
+    // .get('/xxx/:id/yyy', async (ctx, next) => {
+    //     ctx.body = ctx.params;
+    // })
 
 // resourceRouter
 //     .get('/:id', async (ctx, next) => { })
