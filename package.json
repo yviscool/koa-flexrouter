@@ -15,9 +15,11 @@
     "type": "git",
     "url": "git+https://github.com/yviscool/koa-flexrouter"
   },
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "tsc": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist/*"
   },
   "engines": {
     "node": ">=8.9.0"

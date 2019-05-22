@@ -1,26 +1,35 @@
 {
   "compileOnSave": true,
   "compilerOptions": {
-    "target": "es2017",
-    "module": "commonjs",
-    "strict": true,
-    "noImplicitAny": false,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "alwaysStrict": true,
     "charset": "utf8",
-    "allowJs": false,
-    "pretty": true,
-    "noEmitOnError": false,
-    "strictPropertyInitialization": false,
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": false,
+    "inlineSourceMap": false,
+    "module": "ES6",
+    "moduleResolution": "node",
+    "newLine": "lf",
     "noFallthroughCasesInSwitch": true,
+    // "noUnusedLocals": true,
+    "outDir": "./dist",
+    "pretty": true,
     "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
-    "inlineSourceMap": true,
-    "importHelpers": true
+    "sourceMap": false,
+    // "strict": true,
+    "target": "ES2017"
   },
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
-    "app/public",
-    "app/views",
-    "node_modules*"
+    "asset/",
+    "dist/",
+    "test/",
+    "/test_browser*",
+    "node_modules*",
+    "**/*.d.ts",
+    "**/*.spec.ts"
   ]
 }

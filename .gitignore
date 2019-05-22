@@ -6,3 +6,4 @@ run/
 .vscode
 *.swp
 *.lock
+dist/
