@@ -1,9 +1,8 @@
-
 import { Middleware } from "koa";
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
-export interface Value {
+interface Value {
     handlers: Middleware[],
     tsr: boolean,
     params: any
@@ -36,7 +35,7 @@ export default class Tree {
     // 分裂的所有分支第一个字符的相加值, 每个字符的索引对应 children 的索引，方便快速找到分支
     indices: string = "";
     children: Tree[] = [];
-    handlers: Middleware[] | null = [];
+    handlers: Middleware[] | null ;
     priority: number = 0;
     nType: NodeType = NodeType.DEFAULT;
     maxParams: number = 0;

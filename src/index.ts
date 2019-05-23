@@ -1,2 +1,3 @@
-export * from './lib/router'
-export * from './lib/tree'
+import Router from "./lib/router";
+
+export default Router;

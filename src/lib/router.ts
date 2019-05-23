@@ -47,7 +47,7 @@ interface Value {
 }
 
 
- class Router {
+class Router {
 
     // bastpath
     path: string = '/';
@@ -55,6 +55,8 @@ interface Value {
     middlewares: Middleware[] = [];
 
     trees: Map<string, Tree> = new Map();
+
+    redirectTrailingSlash: boolean = true;
 
     constructor(partial?: Partial<Router>) {
         Object.assign(this, partial);
@@ -150,24 +152,48 @@ interface Value {
             }
 
             if (ctx.method != "CONNECT" && ctx.path != "/") {
-                if (tsr && !ctx.RedirectTrailingSlash) {
-                    // redirectTrailingSlash(c)
-                    return
+
+                    
+                if (tsr && router.redirectTrailingSlash) {
+
+                    let p = ctx.path;
+                    
+                    let prefix = path.normalize(ctx.request.headers["X-Forwarded-Prefix"] || '');
+
+                    debug('%s %s',p, prefix)
+
+                    if (prefix != '.') {
+                        p = prefix + '/' + ctx.path;
+                    }
+
+                    let code = 301;
+
+                    if (ctx.method != "GET") {
+                        code = 307;
+                    }
+
+                    ctx.path = p + "/";
+
+                    let length = p.length;
+
+                    if (length > 1 && p.slice(-1) == '/') {
+                        ctx.path = p.slice(0, length - 1);
+                    }
+                    ctx.status = code;
+                    ctx.redirect(ctx.path);
                 }
-                // if engine.RedirectFixedPath && redirectFixedPath(c, root, engine.RedirectFixedPath) {
-                //     return
-                // }
             }
 
 
             return next();
 
-
         }
 
     }
 
-    match(path, method) : Value {
+
+
+    match(path, method): Value {
         const tree = this.trees.get(method);
         return tree ? tree.getValue(path) : { params: {}, handlers: null, tsr: false }
     }
@@ -202,15 +228,17 @@ var userRouter = router.group({
     ]
 })
 
-// var resourceRouter = router.group({ basePath: '/resources' })
 
 router
-    .get('/xxx/:id/zjl/:userId', async (ctx, next) => {
+    .get('/xxx/:id/zjl/:userId/', async (ctx, next) => {
         ctx.body = ctx.params;
     })
-    .get('/xxx/:id/ixl/:userId', async (ctx, next) => {
-        ctx.body = ctx.params;
-    })
+// .get('/xxx/:id/ixl/:userId', async (ctx, next) => {
+//     ctx.body = ctx.params;
+// })
+
+// var resourceRouter = router.group({ basePath: '/resources' })
+
 // .get('/xxx/:id/yyy', async (ctx, next) => {
 //     ctx.body = ctx.params;
 // })
@@ -228,10 +256,10 @@ router
 
 debug(util.inspect(router.trees, { showHidden: false, depth: null }))
 
-var koa = new Koa();
+var app = new Koa();
 
-koa.use(router.routes())
+app.use(router.routes())
 
-koa.listen(3000)
+app.listen(3000)
 
 export default Router;
