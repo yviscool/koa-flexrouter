@@ -3,7 +3,7 @@ import { Middleware } from "koa";
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
 interface Value {
-    handlers: Middleware[],
+    handlers: Middleware[] | null,
     tsr: boolean,
     params: any
 }
@@ -29,13 +29,13 @@ function countParams(path: string): number {
     return n;
 }
 
-export default class Tree {
+ class Tree {
 
     path: string = "";
     // 分裂的所有分支第一个字符的相加值, 每个字符的索引对应 children 的索引，方便快速找到分支
     indices: string = "";
     children: Tree[] = [];
-    handlers: Middleware[] | null ;
+    handlers: Middleware[] | null  = null;
     priority: number = 0;
     nType: NodeType = NodeType.DEFAULT;
     maxParams: number = 0;
@@ -438,3 +438,5 @@ export default class Tree {
     // }
 }
 
+
+export default Tree;

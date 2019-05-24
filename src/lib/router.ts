@@ -41,7 +41,7 @@ interface Router {
 }
 
 interface Value {
-    handlers: Middleware[],
+    handlers: Middleware[]|null,
     tsr: boolean,
     params: any
 }
@@ -69,37 +69,6 @@ class Router {
             trees: this.trees
         });
     }
-
-    // use(path: string, ...middlewares: Middleware[]): Router;
-
-    // use(path: string[], ...middlewares: Middleware[]): Router;
-
-    // use(...Middleware: Middleware[]): Router;
-
-    // use(path: string | string[] | Middleware, ...middlewares: Middleware[]): Router {
-
-    //     // router.use(['path1','path2'], async()=>{} )
-
-    //     if (Array.isArray(path) && typeof path[0] === 'string') {
-    //         path.forEach(p => {
-    //             methods.forEach(method => {
-    //                 this.handle(method, p, ...middlewares);
-    //             });
-    //         });
-    //     } else if (path === 'string') {
-    //         methods.forEach(method => {
-    //             this.handle(method, path, ...middlewares);
-    //         });
-    //     } else (){
-    //         methods.forEach(method => {
-    //             this.handle(method, '/', ...middlewares);
-    //         });
-    //     }
-
-    //     return this;
-    // }
-
-
 
     handle(method: string, path: string, ...middlewares: Middleware[]) {
 
@@ -158,6 +127,7 @@ class Router {
 
                     let p = ctx.path;
                     
+                    ctx.get
                     let prefix = path.normalize(ctx.request.headers["X-Forwarded-Prefix"] || '');
 
                     debug('%s %s',p, prefix)
@@ -193,7 +163,7 @@ class Router {
 
 
 
-    match(path, method): Value {
+    match(path: string, method: string): Value {
         const tree = this.trees.get(method);
         return tree ? tree.getValue(path) : { params: {}, handlers: null, tsr: false }
     }
@@ -203,7 +173,7 @@ class Router {
 // create router verb  get post put delete 
 (methods as string[]).forEach(method => {
 
-    Router.prototype[method] = function (path: string, ...middlewares: Middleware[]) {
+    Router.prototype[method] = function (path: string, ...middlewares: Middleware[]):Router {
 
         this.handle(method.toLocaleUpperCase(), path, ...middlewares);
 
@@ -261,5 +231,6 @@ var app = new Koa();
 app.use(router.routes())
 
 app.listen(3000)
+
 
 export default Router;

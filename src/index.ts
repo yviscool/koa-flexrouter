@@ -1,3 +1,4 @@
 import Router from "./lib/router";
+import Tree from "./lib/tree";
 
-export default Router;
+export { Router, Tree }
