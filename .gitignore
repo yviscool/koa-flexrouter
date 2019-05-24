@@ -7,3 +7,5 @@ run/
 *.swp
 *.lock
 dist/
+
+.nyc_output

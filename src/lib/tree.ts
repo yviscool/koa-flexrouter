@@ -55,7 +55,7 @@ function countParams(path: string): number {
 
         let newPos = pos;
 
-        for (; newPos > 0 && this.children[newPos - 1].priority < prio;) {
+        for (; newPos > 0 && n.children[newPos - 1].priority < prio;) {
 
             [n.children[newPos - 1], n.children[newPos]] = [n.children[newPos], n.children[newPos - 1]]
 
@@ -75,7 +75,6 @@ function countParams(path: string): number {
         this.priority++;
         let n: Tree = this;
         let numParams = countParams(path);
-        // path = new Router().calculateAbsolutePath(path);
         let fullPath = path;
         if (n.path.length > 0 || n.children.length > 0) {
 
@@ -155,7 +154,7 @@ function countParams(path: string): number {
 
                         let prefix = fullPath.slice(0, fullPath.indexOf(pathSeg)) + n.path;
 
-                        throw new Error(`${pathSeg} in new path ${fullPath} conflicts with existing wildcard ${n.path} in existing prefix ${prefix}`);
+                        throw new Error(`'${pathSeg}' in new path '${fullPath}' conflicts with existing wildcard '${n.path}' in existing prefix '${prefix}'`);
                     }
 
                     let c = path[0];

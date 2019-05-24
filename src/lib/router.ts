@@ -199,10 +199,13 @@ var userRouter = router.group({
 })
 
 
-router
-    .get('/xxx/:id/zjl/:userId/', async (ctx, next) => {
-        ctx.body = ctx.params;
-    })
+// router
+//     .get('/cmd/:tool/:sub', async (ctx, next) => {
+//         ctx.body = ctx.params;
+//     })
+//     .get('/cmd/:tool/:sub', async (ctx, next) => {
+//         ctx.body = ctx.params;
+//     })
 // .get('/xxx/:id/ixl/:userId', async (ctx, next) => {
 //     ctx.body = ctx.params;
 // })
