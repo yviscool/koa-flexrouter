@@ -4,16 +4,14 @@ flexrouter implement in koa
 
 ## Installation
 
-Install using [npm](https://www.npmjs.org/):
-
 ```sh
-npm install koa-flexrouter
+npm i koa-flexrouter
 ```
 
 ## Usage
 
 ```js
-import Router from 'koa-flexrouter';
+import { Router } from 'koa-flexrouter';
 import * as Koa from 'koa';
 
 const router = new Router();
@@ -39,7 +37,7 @@ app.use(router.routes())
 ### sub-router
 
 ```js
-import Router from 'koa-flexrouter';
+import { Router }  from 'koa-flexrouter';
 import * as Koa from 'koa';
 
 const router = new Router();

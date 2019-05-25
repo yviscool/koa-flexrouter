@@ -6,7 +6,7 @@ import * as util from "util";
 import { Middleware } from "koa";
 import * as Koa from "koa";
 
-import Tree from "./tree";
+import { Tree }  from "./tree";
 
 const debug = require('debug')('router');
 
@@ -17,27 +17,11 @@ interface Router {
     put(path: string, ...middleware: Array<Middleware>): Router;
     head(path: string, ...middleware: Array<Middleware>): Router;
     delete(path: string, ...middleware: Array<Middleware>): Router;
+    del(path: string, ...middleware: Array<Middleware>): Router;
     options(path: string, ...middleware: Array<Middleware>): Router;
     patch(path: string, ...middleware: Array<Middleware>): Router;
-    trace();
-    copy();
-    lock();
-    mkcok();
-    move();
-    purge();
-    profind();
-    proppatch();
-    unlock();
-    report();
-    mkactivity();
-    checkout();
-    merge();
-    ['m-search']();
-    notify();
-    subscribe();
-    unsubscribe();
-    search();
-    connect();
+    link(path: string, ...middleware: Array<Middleware>): Router;
+    unlink(path: string, ...middleware: Array<Middleware>): Router;
 }
 
 interface Value {
@@ -183,57 +167,6 @@ class Router {
 })
 
 
+Router.prototype['del'] = Router.prototype['delete'];
 
-var router = new Router();
-
-var userRouter = router.group({
-    path: '/users',
-    middlewares: [
-        async function (ctx, next) {
-
-            console.log('ahah')
-
-            return next();
-        }
-    ]
-})
-
-
-// router
-//     .get('/cmd/:tool/:sub', async (ctx, next) => {
-//         ctx.body = ctx.params;
-//     })
-//     .get('/cmd/:tool/:sub', async (ctx, next) => {
-//         ctx.body = ctx.params;
-//     })
-// .get('/xxx/:id/ixl/:userId', async (ctx, next) => {
-//     ctx.body = ctx.params;
-// })
-
-// var resourceRouter = router.group({ basePath: '/resources' })
-
-// .get('/xxx/:id/yyy', async (ctx, next) => {
-//     ctx.body = ctx.params;
-// })
-
-// resourceRouter
-//     .get('/:id', async (ctx, next) => { })
-
-
-// router.get('/users/:id', async (ctx, next) => { return next() }, async (ctx, next) => {
-// router.get('/users/:id/resource', function () { }, function () { })
-// router.addRoute('/teachers/:id/ixl', function () { }, function () { })
-// router.addRoute('/teaixl/:id/ixl/', function () { }, function () { })
-
-// var pararms = tree.getValue('/teaixl/123/ixl/456/zjl', {});
-
-debug(util.inspect(router.trees, { showHidden: false, depth: null }))
-
-var app = new Koa();
-
-app.use(router.routes())
-
-app.listen(3000)
-
-
-export default Router;
+export { Router } ;

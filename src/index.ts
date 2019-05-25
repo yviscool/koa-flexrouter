@@ -1,4 +1,2 @@
-import Router from "./lib/router";
-import Tree from "./lib/tree";
-
-export { Router, Tree }
+export * from "./lib/router";
+export * from "./lib/tree";

@@ -438,4 +438,4 @@ function countParams(path: string): number {
 }
 
 
-export default Tree;
+export { Tree } ;
