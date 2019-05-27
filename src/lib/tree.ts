@@ -2,13 +2,13 @@ import { Middleware } from "koa";
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
-interface Value {
+export interface Value {
     handlers: Middleware[] | null,
     tsr: boolean,
     params: any
 }
 
-interface CaseInsensitiveValue {
+export interface CaseInsensitiveValue {
     ciPath: string,
     found: boolean;
 }
@@ -36,7 +36,7 @@ function countParams(path: string): number {
     return n;
 }
 
-class Tree {
+export class Tree {
 
     path: string = "";
     // 分裂的所有分支第一个字符的相加值, 每个字符的索引对应 children 的索引，方便快速找到分支
@@ -62,7 +62,7 @@ class Tree {
 
         let newPos = pos;
 
-        for (; newPos > 0 && n.children[newPos - 1].priority < prio;) {
+        while(newPos > 0 && n.children[newPos - 1].priority < prio) {
 
             [n.children[newPos - 1], n.children[newPos]] = [n.children[newPos], n.children[newPos - 1]]
 
@@ -434,7 +434,7 @@ class Tree {
         }
     }
 
-    findcaseinsensitivepath(path: string, fixTrailingSlash: boolean): CaseInsensitiveValue {
+    findCaseInsensitivePath(path: string, fixTrailingSlash: boolean): CaseInsensitiveValue {
         let ciPath = '';
         let n: Tree = this;
 
@@ -458,7 +458,7 @@ class Tree {
 
                         if (r == indice.toLocaleLowerCase()) {
 
-                            let { ciPath: out, found } = n.children[i].findcaseinsensitivepath(path, fixTrailingSlash)
+                            let { ciPath: out, found } = n.children[i].findCaseInsensitivePath(path, fixTrailingSlash)
 
                             if (found) {
                                 return { ciPath: ciPath + out, found: true }
@@ -563,4 +563,4 @@ class Tree {
 }
 
 
-export { Tree };
+// export { Tree };

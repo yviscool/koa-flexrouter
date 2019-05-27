@@ -4,9 +4,8 @@ import * as compose from "koa-compose";
 import * as path from "path";
 import * as util from "util";
 import { Middleware } from "koa";
-// import * as Koa from "koa";
 
-import { Tree } from "./tree";
+import { Tree, Value, CaseInsensitiveValue } from "./tree";
 
 const debug = require('debug')('router');
 
@@ -22,17 +21,6 @@ interface Router {
     patch(path: string, ...middleware: Array<Middleware>): Router;
     link(path: string, ...middleware: Array<Middleware>): Router;
     unlink(path: string, ...middleware: Array<Middleware>): Router;
-}
-
-interface Value {
-    handlers: Middleware[] | null,
-    tsr: boolean,
-    params: any
-}
-
-interface CaseInsensitiveValue {
-    ciPath: string,
-    found: boolean;
 }
 
 class Router {
@@ -58,7 +46,8 @@ class Router {
     group(partial?: Partial<Router>): Router {
         return new Router({
             ...partial,
-            trees: this.trees
+            trees: this.trees,
+            redirectFixedPath: this.redirectFixedPath
         });
     }
 
@@ -115,7 +104,7 @@ class Router {
             if (ctx.method != "CONNECT" && ctx.path != "/") {
 
 
-                let code = 301;
+                const code = ctx.method != "GET" ? 307 : 301;
 
                 if (tsr && router.redirectTrailingSlash) {
 
@@ -127,10 +116,6 @@ class Router {
 
                     if (prefix != '.') {
                         p = prefix + '/' + ctx.path;
-                    }
-
-                    if (ctx.method != "GET") {
-                        code = 307;
                     }
 
                     ctx.path = p + "/";
@@ -149,14 +134,9 @@ class Router {
                     const { ciPath, found } = router.findFixedPath(path.normalize(ctx.path), ctx.method);
 
                     if (found) {
-                        if (ctx.method != "GET") {
-                            code = 307;
-                        }
-                        ctx.path = ciPath;
+                        ctx.status = code;
+                        ctx.redirect(ciPath);
                     }
-
-                    ctx.status = code;
-                    ctx.redirect(ctx.path);
 
                 }
 
@@ -177,7 +157,7 @@ class Router {
 
     findFixedPath(path: string, method: string): CaseInsensitiveValue {
         const tree = this.trees.get(method);
-        return tree ? tree.findcaseinsensitivepath(path, true) : { ciPath: null, found: false }
+        return tree ? tree.findCaseInsensitivePath(path, true) : { ciPath: null, found: false }
     }
 }
 
