@@ -4,9 +4,9 @@ import * as compose from "koa-compose";
 import * as path from "path";
 import * as util from "util";
 import { Middleware } from "koa";
-import * as Koa from "koa";
+// import * as Koa from "koa";
 
-import { Tree }  from "./tree";
+import { Tree } from "./tree";
 
 const debug = require('debug')('router');
 
@@ -25,11 +25,15 @@ interface Router {
 }
 
 interface Value {
-    handlers: Middleware[]|null,
+    handlers: Middleware[] | null,
     tsr: boolean,
     params: any
 }
 
+interface CaseInsensitiveValue {
+    ciPath: string,
+    found: boolean;
+}
 
 class Router {
 
@@ -40,7 +44,11 @@ class Router {
 
     trees: Map<string, Tree> = new Map();
 
+    // trailing slash  for redirect
     redirectTrailingSlash: boolean = true;
+
+    // CaseInsensitive for redirect
+    redirectFixedPath: boolean = false;
 
     constructor(partial?: Partial<Router>) {
         Object.assign(this, partial);
@@ -106,15 +114,15 @@ class Router {
 
             if (ctx.method != "CONNECT" && ctx.path != "/") {
 
-                    
+
                 if (tsr && router.redirectTrailingSlash) {
 
                     let p = ctx.path;
-                    
+
                     ctx.get
                     let prefix = path.normalize(ctx.request.headers["X-Forwarded-Prefix"] || '');
 
-                    debug('%s %s',p, prefix)
+                    debug('%s %s', p, prefix)
 
                     if (prefix != '.') {
                         p = prefix + '/' + ctx.path;
@@ -135,6 +143,19 @@ class Router {
                     }
                     ctx.status = code;
                     ctx.redirect(ctx.path);
+                } else if (router.redirectFixedPath) {
+
+                    const { ciPath, found } = router.findFixedPath(path.normalize(ctx.path), ctx.method);
+
+                    if (found) {
+                        let code = 301;
+                        if (ctx.method != "GET") {
+                            code = 307;
+                        }
+                        ctx.path = ciPath;
+                        ctx.status = code;
+                        ctx.redirect(ctx.path);
+                    }
                 }
             }
 
@@ -146,10 +167,14 @@ class Router {
     }
 
 
-
     match(path: string, method: string): Value {
         const tree = this.trees.get(method);
-        return tree ? tree.getValue(path) : { params: {}, handlers: null, tsr: false }
+        return tree ? tree.getValue(path) : { params: null, handlers: null, tsr: false }
+    }
+
+    findFixedPath(path: string, method: string): CaseInsensitiveValue {
+        const tree = this.trees.get(method);
+        return tree ? tree.findcaseinsensitivepath(path, true) : { ciPath: null, found: false }
     }
 }
 
@@ -157,7 +182,7 @@ class Router {
 // create router verb  get post put delete 
 (methods as string[]).forEach(method => {
 
-    Router.prototype[method] = function (path: string, ...middlewares: Middleware[]):Router {
+    Router.prototype[method] = function (path: string, ...middlewares: Middleware[]): Router {
 
         this.handle(method.toLocaleUpperCase(), path, ...middlewares);
 
@@ -169,4 +194,17 @@ class Router {
 
 Router.prototype['del'] = Router.prototype['delete'];
 
-export { Router } ;
+export { Router };
+
+
+// var a = new Router({ redirectFixedPath: true })
+
+// a.get('/xxx/:id/*action')
+
+
+
+// debug(util.inspect(a.trees, { showHidden: false, depth: null }))
+
+// var b = a.trees.get('GET').findcaseinsensitivepath('/XXX/123/zjlxxxxxx', true);
+
+// console.log(b)

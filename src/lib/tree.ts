@@ -8,6 +8,11 @@ interface Value {
     params: any
 }
 
+interface CaseInsensitiveValue {
+    ciPath: string,
+    found: boolean;
+}
+
 const wildcards = [':', '*'];
 
 function split2(path: string, sep: string): string[] {
@@ -15,6 +20,8 @@ function split2(path: string, sep: string): string[] {
     return res.length == 1 ? res : [res[0], res.slice(1).join(sep)];
 }
 
+
+// count `:` and `*` num
 function countParams(path: string): number {
     let n = 0;
     for (let i = 0; i < path.length; i++) {
@@ -29,13 +36,13 @@ function countParams(path: string): number {
     return n;
 }
 
- class Tree {
+class Tree {
 
     path: string = "";
     // 分裂的所有分支第一个字符的相加值, 每个字符的索引对应 children 的索引，方便快速找到分支
     indices: string = "";
     children: Tree[] = [];
-    handlers: Middleware[] | null  = null;
+    handlers: Middleware[] | null = null;
     priority: number = 0;
     nType: NodeType = NodeType.DEFAULT;
     maxParams: number = 0;
@@ -75,7 +82,9 @@ function countParams(path: string): number {
         this.priority++;
         let n: Tree = this;
         let numParams = countParams(path);
-        let fullPath = path;
+
+        const fullPath = path;
+
         if (n.path.length > 0 || n.children.length > 0) {
 
             walk: while (true) {
@@ -85,8 +94,8 @@ function countParams(path: string): number {
                 let i = 0;
                 let max = Math.min(path.length, n.path.length);
 
-                // 找到 path 和 n.path 的公共值 索引
-                for (; i < max && path[i] == n.path[i];) {
+                // Find the longest common index in `path` and `n.path`
+                while (i < max && path[i] == n.path[i]) {
                     i++;
                 }
 
@@ -183,13 +192,13 @@ function countParams(path: string): number {
                         n = child;
                     }
 
-                    n.insertChild(numParams, path, middlewares);
+                    n.insertChild(numParams, path, fullPath, middlewares);
 
                     return;
 
                 } else if (i == path.length) {
                     if (n.handlers != null) {
-                        throw new Error('handlers are already registerd for path' + fullPath);
+                        throw new Error(`handlers are already registerd for path '${fullPath}'`);
                     }
                     n.handlers = middlewares;
                 }
@@ -197,17 +206,16 @@ function countParams(path: string): number {
             }
 
         } else {
-            n.insertChild(numParams, path, middlewares)
+            n.insertChild(numParams, path, fullPath, middlewares)
             n.nType = NodeType.ROOT;
         }
     }
 
-    insertChild(numParams: number, path: string, middlewares: Middleware[]) {
+    insertChild(numParams: number, path: string, fullPath: string, middlewares: Middleware[]) {
 
         let n: Tree = this;
         let offset = 0;
 
-        const fullPath = path;
         for (let [i, max] = [0, path.length]; numParams > 0; i++) {
 
             let c = path[i];
@@ -217,20 +225,22 @@ function countParams(path: string): number {
             }
 
             let end = i + 1;
+
             // 找到未知数第一次以 / 结尾的，该段区间内不能重复有 * / :
             while (end < max && path[end] != '/') {
                 if (wildcards.indexOf(path[end]) > 0) {
-                    throw new Error(`only one wildcard per path segment is allowed, has: ${path.slice(i)} in path ${fullPath}`);
+                    throw new Error(`only one wildcard per path segment is allowed, has: '${path.slice(i)}' in path '${fullPath}'`);
                 }
                 end++;
             }
 
             if (n.children.length > 0) {
-                throw new Error(`wildcard route ${path.slice(i, end)} conflicts with existing children in path ${fullPath}`);
+                throw new Error(`wildcard route '${path.slice(i, end)}' conflicts with existing children in path '${fullPath}'`);
             }
-            // /:/xjl 未知数必须要有名字
+
+            // /:/xjl 未知数必须要有命名
             if (end - i < 2) {
-                throw new Error(`wildcards must be named with a non-empty name in path ${fullPath}`);
+                throw new Error(`wildcards must be named with a non-empty name in path '${fullPath}'`);
             }
 
             if (c == ':') {
@@ -266,21 +276,25 @@ function countParams(path: string): number {
                 }
 
             } else {
+
+                // *action must at  end of the path,  such as /*action/xxx is not allowed
                 if (end != max || numParams > 1) {
-                    throw new Error(`catch-all routes are only allowed at the end of the path in path ${fullPath}`)
+                    throw new Error(`catch-all routes are only allowed at the end of the path in path '${fullPath}'`)
                 }
 
                 if (n.path.length > 0 && n.path.slice(-1) == '/') {
-                    throw new Error(`catch-all conflicts with existing handle for the path segment root in path ${fullPath}`)
+                    throw new Error(`catch-all conflicts with existing handle for the path segment root in path '${fullPath}'`)
                 }
 
                 // currently fixed width 1 for '/'
                 i--;
+
                 if (path[i] != '/') {
-                    throw new Error(`no / before catch-all in path ${fullPath}`)
+                    throw new Error(`no / before catch-all in path '${fullPath}'`)
                 }
 
                 n.path = path.slice(offset, i);
+
                 // first node: catchAll node with empty path
                 let child = new Tree({
                     wildChild: true,
@@ -343,7 +357,7 @@ function countParams(path: string): number {
                     if (n.nType == NodeType.PARAM) {
 
                         let end = 0;
-                        for (; end < path.length && path[end] != '/';) {
+                        while (end < path.length && path[end] != '/') {
                             end++;
                         }
 
@@ -420,22 +434,133 @@ function countParams(path: string): number {
         }
     }
 
-    // findCaseInsensitivePath(path: string, fixTrailingSlash: boolean) {
-    //     let ciPath: string[] = [];
-    //     let n: Tree = this;
-    //     for (path.length >= n.path.length && path.slice(0, n.path.length).toLocaleLowerCase() == n.path.toLocaleLowerCase()) {
+    findcaseinsensitivepath(path: string, fixTrailingSlash: boolean): CaseInsensitiveValue {
+        let ciPath = '';
+        let n: Tree = this;
 
-    //         path = path.slice(n.path.length);
-    //         ciPath = [...ciPath, ...n.path];
+        let found = false;
 
-    //         if (path.length > 0) {
-    //             if (!n.wildChild){
+        while (path.length >= n.path.length && path.slice(0, n.path.length).toLocaleLowerCase() == n.path.toLocaleLowerCase()) {
 
-    //             }
-    //         }
-    //     }
-    // }
+            path = path.slice(n.path.length);
+            ciPath = ciPath + n.path;
+
+            if (path.length > 0) {
+
+                if (!n.wildChild) {
+
+                    let r = path[0].toLocaleLowerCase();
+
+
+                    for (let i = 0; i < n.indices.length; i++) {
+
+                        let indice = n.indices.charAt(i);
+
+                        if (r == indice.toLocaleLowerCase()) {
+
+                            let { ciPath: out, found } = n.children[i].findcaseinsensitivepath(path, fixTrailingSlash)
+
+                            if (found) {
+                                return { ciPath: ciPath + out, found: true }
+                            }
+                        }
+
+                    }
+
+
+                    found = fixTrailingSlash && path == "/" && n.handlers != null;
+
+                    return { ciPath, found }
+                }
+
+
+                n = n.children[0];
+
+                if (n.nType == NodeType.PARAM) {
+                    let k = 0;
+                    while (k < path.length && path[k] != '/') {
+                        k++;
+                    }
+
+                    // add param value to case insensitive path
+                    ciPath = ciPath + path.slice(0, k);
+
+                    // we need to go deeper!
+                    if (k < path.length) {
+                        if (n.children.length > 0) {
+                            path = path.slice(k);
+                            n = n.children[0];
+                            continue
+                        }
+
+                        // ... but we can't
+                        if (fixTrailingSlash && path.length == k + 1) {
+                            return { ciPath, found: true }
+                        }
+                        return { ciPath, found }
+                    }
+
+                    if (n.handlers != null) {
+                        return { ciPath, found: true }
+                    }
+
+                    if (fixTrailingSlash && n.children.length == 1) {
+                        // no handle found. check if a handle for this path + a
+                        // trailing slash exists
+                        n = n.children[0]
+                        if (n.path == "/" && n.handlers != null) {
+                            return { ciPath: ciPath + '/', found: true }
+                        }
+                    }
+                    
+                    return { ciPath, found };
+                }
+
+                if (n.nType == NodeType.CATCHALL) {
+                    return { ciPath: ciPath + path, found: true }
+                }
+
+                throw ("invalid node type")
+            } else {
+                if (n.handlers != null) {
+                    return { ciPath, found: true }
+                }
+
+                // no handle found.
+                // try to fix the path by adding a trailing slash
+                if (fixTrailingSlash) {
+                    for (let i = 0; i < n.indices.length; i++) {
+                        if (n.indices[i] == '/') {
+                            n = n.children[i];
+                            if ((n.path.length == 1 && n.handlers != null) || (n.nType == NodeType.CATCHALL && n.children[0].handlers != null)) {
+                                return { ciPath: ciPath + '/', found: true }
+                            }
+                            return { ciPath, found };
+                        }
+                    }
+                }
+                return { ciPath, found };
+            }
+
+
+        }
+
+        if (fixTrailingSlash) {
+            if (path == "/") {
+                return { ciPath, found: true }
+            }
+            if (path.length + 1 == n.path.length &&
+                n.path[path.length] == '/' &&
+                path.toLocaleLowerCase() == n.path.slice(0, path.length).toLocaleLowerCase() &&
+                n.handlers != null
+            ) {
+                return { ciPath: ciPath + n.path, found: true };
+            }
+        }
+
+        return { ciPath, found };
+    }
 }
 
 
-export { Tree } ;
+export { Tree };
