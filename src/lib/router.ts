@@ -115,11 +115,12 @@ class Router {
             if (ctx.method != "CONNECT" && ctx.path != "/") {
 
 
+                let code = 301;
+
                 if (tsr && router.redirectTrailingSlash) {
 
                     let p = ctx.path;
 
-                    ctx.get
                     let prefix = path.normalize(ctx.request.headers["X-Forwarded-Prefix"] || '');
 
                     debug('%s %s', p, prefix)
@@ -127,8 +128,6 @@ class Router {
                     if (prefix != '.') {
                         p = prefix + '/' + ctx.path;
                     }
-
-                    let code = 301;
 
                     if (ctx.method != "GET") {
                         code = 307;
@@ -141,22 +140,26 @@ class Router {
                     if (length > 1 && p.slice(-1) == '/') {
                         ctx.path = p.slice(0, length - 1);
                     }
+
                     ctx.status = code;
                     ctx.redirect(ctx.path);
+
                 } else if (router.redirectFixedPath) {
 
                     const { ciPath, found } = router.findFixedPath(path.normalize(ctx.path), ctx.method);
 
                     if (found) {
-                        let code = 301;
                         if (ctx.method != "GET") {
                             code = 307;
                         }
                         ctx.path = ciPath;
-                        ctx.status = code;
-                        ctx.redirect(ctx.path);
                     }
+
+                    ctx.status = code;
+                    ctx.redirect(ctx.path);
+
                 }
+
             }
 
 
