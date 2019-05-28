@@ -1,0 +1,11 @@
+{
+  "name": "flexrouter-benchmark",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "benchmark": "^2.1.4",
+    "koa-flexrouter": "^0.9.7",
+    "koa-router": "^7.4.0"
+  }
+}
