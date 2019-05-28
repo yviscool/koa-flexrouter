@@ -6,7 +6,7 @@ import * as util from 'util'
 
 const debug = require('debug')('router')
 
-import { Tree } from '../src/index'
+import { Tree } from '../src/lib/tree'
 
 const filename = path.basename(__filename)
 

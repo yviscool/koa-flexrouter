@@ -1,2 +1,1 @@
-export * from "./lib/router";
-export * from "./lib/tree";
+export { default as default } from "./lib/router";

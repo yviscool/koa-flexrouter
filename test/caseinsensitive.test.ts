@@ -2,7 +2,7 @@
 
 import * as assert from 'power-assert'
 
-import { Tree } from '../src/index'
+import { Tree } from '../src/lib/tree'
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
@@ -145,7 +145,7 @@ describe('TestTreeFindCaseInsensitivePath', () => {
 
     testRoutes.forEach(route => {
         const { ciPath, found } = tree.findCaseInsensitivePath(route.path, false);
-        it(`access ${route} findCaseInsensitive all works`, () => {
+        it(`access ${route.route} findCaseInsensitive all works`, () => {
             if (route.slash) {
                 assert(found == false, 'should be true')
             } else {

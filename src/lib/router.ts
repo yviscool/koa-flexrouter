@@ -177,17 +177,4 @@ class Router {
 
 Router.prototype['del'] = Router.prototype['delete'];
 
-export { Router };
-
-
-// var a = new Router({ redirectFixedPath: true })
-
-// a.get('/xxx/:id/*action')
-
-
-
-// debug(util.inspect(a.trees, { showHidden: false, depth: null }))
-
-// var b = a.trees.get('GET').findcaseinsensitivepath('/XXX/123/zjlxxxxxx', true);
-
-// console.log(b)
+export default Router;

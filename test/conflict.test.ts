@@ -2,7 +2,7 @@
 
 import * as assert from 'power-assert'
 
-import { Tree } from '../src/index'
+import { Tree } from '../src/lib/tree'
 
 enum NodeType { DEFAULT, ROOT, PARAM, CATCHALL }
 
