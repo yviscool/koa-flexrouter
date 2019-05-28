@@ -115,7 +115,7 @@ describe('Router', () => {
         const router = new Router();
 
 
-        router.post('/user', async (ctx, next) => {
+        router.get('/user', async (ctx, next) => {
             ctx.body = "foo";
         })
 
@@ -123,8 +123,8 @@ describe('Router', () => {
 
         // redirect
         request(http.createServer(app.callback()))
-            .post('/user/')
-            .expect(307)
+            .get('/user/')
+            .expect(301)
             .expect('Location', '/user')
             .end(done);
     });
@@ -180,6 +180,20 @@ describe('Router', () => {
         request(http.createServer(app.callback()))
             .patch('/')
             .expect(200)
+            .end(done);
+    });
+
+    it('router match none', (done) => {
+        const app = new Koa();
+        const router = new Router();
+
+
+        app.use(router.routes());
+
+        // redirect
+        request(http.createServer(app.callback()))
+            .patch('/')
+            .expect(404)
             .end(done);
     });
 })

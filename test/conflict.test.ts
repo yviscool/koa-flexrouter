@@ -94,8 +94,9 @@ describe('TestTreeWildcardConflict', () => {
         { path: "/search/invalid", conflict: true },
         { path: "/user_:name", conflict: true },
         { path: "/user_x", conflict: true },
-        { path: "/id:id", conflict: false },
-        { path: "/id/:id", conflict: true },
+        { path: "/id:id*", conflict: true},
+        { path: "/:/id", conflict: true},
+        { path: "/*action/xxid", conflict: true},
     ]
 
     testRoutes(tree, routes);
