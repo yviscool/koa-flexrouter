@@ -1,9 +1,6 @@
 environment:
   matrix:
     - nodejs_version: "10"
-  CODECOV_TOKEN:
-    secret: 0dyWZVXg2HBukbD573H3X8VjKXiQLhLcq919LntyFRIBmhQbiXHj652I2LAgxZpXLrUG9qZlKoUx4HWQyzgQ9em7ERMnxJU2ZB2+wsz2Y3k=
-
 
 platform:
   - x64

@@ -10,8 +10,8 @@ flexrouter implement in koa
 [npm-url]: https://npmjs.org/package/koa-flexrouter
 [travis-image]: https://travis-ci.org/yviscool/koa-flexrouter.svg?branch=master
 [travis-url]: https://travis-ci.org/yviscool/koa-flexrouter
-[coverage-url]: https://codecov.io/gh/yviscool/koa-flexrouter
-[coverage-image]: https://codecov.io/gh/yviscool/koa-flexrouter/branch/master/graph/badge.svg
+[coverage-url]: https://coveralls.io/github/yviscool/koa-flexrouter
+[coverage-image]: https://coveralls.io/repos/github/yviscool/koa-flexrouter/badge.svg
 
 ## Installation
 
