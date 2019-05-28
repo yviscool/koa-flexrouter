@@ -1,6 +1,6 @@
 {
   "name": "koa-flexrouter",
-  "version": "0.9.6",
+  "version": "0.9.8",
   "description": "flexrouter for koa",
   "keywords": [
     "koa",
@@ -51,7 +51,6 @@
     "@types/mocha": "^5.2.6",
     "@types/power-assert": "^1.5.0",
     "coveralls": "^3.0.0",
-    "got": "^9.6.0",
     "intelli-espower-loader": "^1.0.1",
     "koa": "^2.7.0",
     "mocha": "^6.1.4",
@@ -60,14 +59,17 @@
     "source-map-support": "^0.5.12",
     "supertest": "^4.0.2",
     "ts-node": "^8.1.0",
-    "tslib": "^1.9.3"
+    "tslib": "^1.9.3",
+    "tslint": "^5.16.0",
+    "tslint-config-egg": "^1.0.0"
   },
   "scripts": {
     "tsc": "tsc -p tsconfig.json",
     "clean": "rm -rf dist/*",
     "cov": "nyc mocha",
+    "lint": "tslint --project . -c tslint.json",
     "cov:coveralls": "nyc mocha && nyc report --reporter=text-lcov | coveralls",
-    "test": "mocha --opts test/mocha.opts",
+    "test": "npm run lint -- --fix && mocha --opts test/mocha.opts",
     "build": "npm run clean && npm run tsc"
   }
 }

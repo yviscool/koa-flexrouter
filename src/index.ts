@@ -1,1 +1,1 @@
-export { default as default } from "./lib/router";
+export { default as default } from './lib/router';

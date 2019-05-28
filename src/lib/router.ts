@@ -1,26 +1,26 @@
 
-import * as methods from "methods";
-import * as compose from "koa-compose";
-import * as path from "path";
-import * as util from "util";
-import { Middleware } from "koa";
+import * as methods from 'methods';
+import * as compose from 'koa-compose';
+import * as path from 'path';
+import { Middleware } from 'koa';
+import * as DEBUG from 'debug';
 
-import { Tree, Value, CaseInsensitiveValue } from "./tree";
+import { Tree, Value, CaseInsensitiveValue } from './tree';
 
-const debug = require('debug')('router');
+const debug = DEBUG('router');
 
-// declaration merging, merge rest verb 
+// declaration merging, merge rest verb
 interface Router {
-    get(path: string, ...middleware: Array<Middleware>): Router;
-    post(path: string, ...middleware: Array<Middleware>): Router;
-    put(path: string, ...middleware: Array<Middleware>): Router;
-    head(path: string, ...middleware: Array<Middleware>): Router;
-    delete(path: string, ...middleware: Array<Middleware>): Router;
-    del(path: string, ...middleware: Array<Middleware>): Router;
-    options(path: string, ...middleware: Array<Middleware>): Router;
-    patch(path: string, ...middleware: Array<Middleware>): Router;
-    link(path: string, ...middleware: Array<Middleware>): Router;
-    unlink(path: string, ...middleware: Array<Middleware>): Router;
+    get(path: string, ...middleware: Middleware[]): Router;
+    post(path: string, ...middleware: Middleware[]): Router;
+    put(path: string, ...middleware: Middleware[]): Router;
+    head(path: string, ...middleware: Middleware[]): Router;
+    delete(path: string, ...middleware: Middleware[]): Router;
+    del(path: string, ...middleware: Middleware[]): Router;
+    options(path: string, ...middleware: Middleware[]): Router;
+    patch(path: string, ...middleware: Middleware[]): Router;
+    link(path: string, ...middleware: Middleware[]): Router;
+    unlink(path: string, ...middleware: Middleware[]): Router;
 }
 
 class Router {
@@ -47,7 +47,7 @@ class Router {
         return new Router({
             ...partial,
             trees: this.trees,
-            redirectFixedPath: this.redirectFixedPath
+            redirectFixedPath: this.redirectFixedPath,
         });
     }
 
@@ -55,7 +55,7 @@ class Router {
 
         const absolutePath = this.calculateAbsolutePath(path);
 
-        middlewares = [...this.middlewares, ...middlewares];
+        middlewares = [ ...this.middlewares, ...middlewares ];
 
         let tree = this.trees.get(method);
 
@@ -67,7 +67,6 @@ class Router {
         tree.addRoute(absolutePath, middlewares);
 
     }
-
 
     calculateAbsolutePath(relativePath: string): string {
 
@@ -89,7 +88,7 @@ class Router {
 
         return function dispatch(ctx, next) {
 
-            debug('%s %s', ctx.method, ctx.path)
+            debug('%s %s', ctx.method, ctx.path);
 
             const { params, handlers, tsr } = router.match(ctx.path, ctx.method);
 
@@ -101,26 +100,25 @@ class Router {
 
             }
 
-            if (ctx.method != "CONNECT" && ctx.path != "/") {
+            if (ctx.method != 'CONNECT' && ctx.path != '/') {
 
-
-                const code = ctx.method != "GET" ? 307 : 301;
+                const code = ctx.method != 'GET' ? 307 : 301;
 
                 if (tsr && router.redirectTrailingSlash) {
 
                     let p = ctx.path;
 
-                    let prefix = path.normalize(ctx.request.headers["X-Forwarded-Prefix"] || '');
+                    const prefix = path.normalize(ctx.request.headers['X-Forwarded-Prefix'] || '');
 
-                    debug('%s %s', p, prefix)
+                    debug('%s %s', p, prefix);
 
                     if (prefix != '.') {
                         p = prefix + '/' + ctx.path;
                     }
 
-                    ctx.path = p + "/";
+                    ctx.path = p + '/';
 
-                    let length = p.length;
+                    const length = p.length;
 
                     if (length > 1 && p.slice(-1) == '/') {
                         ctx.path = p.slice(0, length - 1);
@@ -142,27 +140,26 @@ class Router {
 
             }
 
-
             return next();
 
-        }
+        };
 
     }
 
-
     match(path: string, method: string): Value {
         const tree = this.trees.get(method);
-        return tree ? tree.getValue(path) : { params: null, handlers: null, tsr: false }
+
+        return tree ? tree.getValue(path) : { params: null, handlers: null, tsr: false };
     }
 
     findFixedPath(path: string, method: string): CaseInsensitiveValue {
         const tree = this.trees.get(method);
-        return tree ? tree.findCaseInsensitivePath(path, true) : { ciPath: null, found: false }
+
+        return tree ? tree.findCaseInsensitivePath(path, true) : { ciPath: null, found: false };
     }
 }
 
-
-// create router verb  get post put delete 
+// create router verb  get post put delete
 (methods as string[]).forEach(method => {
 
     Router.prototype[method] = function (path: string, ...middlewares: Middleware[]): Router {
@@ -171,10 +168,9 @@ class Router {
 
         return this;
 
-    }
-})
+    };
+});
 
-
-Router.prototype['del'] = Router.prototype['delete'];
+Router.prototype.del = Router.prototype.delete;
 
 export default Router;

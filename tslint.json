@@ -1,3 +1,8 @@
 {
-  "extends": ["tslint-config-egg"]
+  "extends": ["tslint-config-egg"],
+  "rules":{
+    "triple-equals": [ false, "allow-null-check" ],
+    "no-constant-condition": false,
+    "ter-newline-after-var": true
+  }
 }

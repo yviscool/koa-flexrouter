@@ -164,4 +164,22 @@ describe('Router', () => {
             .expect(404)
             .end(done);
     });
+
+    it('access "" path ', (done) => {
+        const app = new Koa();
+        const router = new Router();
+
+
+        router.patch('', async (ctx, next) => {
+            ctx.body = "foo";
+        })
+
+        app.use(router.routes());
+
+        // redirect
+        request(http.createServer(app.callback()))
+            .patch('/')
+            .expect(200)
+            .end(done);
+    });
 })
