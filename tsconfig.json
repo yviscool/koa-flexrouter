@@ -2,9 +2,9 @@
   "compilerOptions": {
     "alwaysStrict": true,
     "charset": "utf8",
-    "allowJs": true,
-    "checkJs": true,
-    "declaration": false,
+    // "allowJs": true,
+    // "checkJs": true,
+    "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": false,

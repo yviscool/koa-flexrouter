@@ -4,6 +4,9 @@ language: node_js
 node_js:
 - '10'
 
+codecov:
+  token: a282fbc6-9734-4f21-83d8-ef21d8d176e4
+
 cache:
   directories:
     - node_modules
