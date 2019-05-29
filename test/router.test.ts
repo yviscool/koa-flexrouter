@@ -196,4 +196,22 @@ describe('Router', () => {
             .expect(404)
             .end(done);
     });
+
+    it('X-Forwarded-Prefix', (done) => {
+        const app = new Koa();
+        const router = new Router();
+
+        router.get('/path2/',async (ctx) => {
+            ctx.body = "foo";
+        })
+
+        app.use(router.routes());
+
+        // redirect
+        request(http.createServer(app.callback()))
+            .get('/path2')
+            .set('X-Forwarded-Prefix', '/api')
+            .expect(301)
+            .end(done);
+    });
 })

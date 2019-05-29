@@ -108,7 +108,7 @@ class Router {
 
                     let p = ctx.path;
 
-                    const prefix = path.normalize(ctx.request.headers['X-Forwarded-Prefix'] || '');
+                    const prefix = path.normalize(ctx.headers['x-forwarded-prefix'] || '');
 
                     debug('%s %s', p, prefix);
 
