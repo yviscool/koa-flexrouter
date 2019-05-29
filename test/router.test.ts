@@ -214,4 +214,60 @@ describe('Router', () => {
             .expect(301)
             .end(done);
     });
+
+    it('X-Forwarded-Prefix 2', (done) => {
+        const app = new Koa();
+        const router = new Router();
+
+        router.get('/path2/',async (ctx) => {
+            ctx.body = "foo";
+        })
+
+        app.use(router.routes());
+
+        // redirect
+        request(http.createServer(app.callback()))
+            .get('/path2/')
+            .set('X-Forwarded-Prefix', '/api')
+            .expect(200)
+            .end(done);
+    });
+
+    it('findFixedPath 1', (done) => {
+        const app = new Koa();
+        const router = new Router({
+            redirectFixedPath: true
+        });
+
+        router.get('/x/y/z',async (ctx) => {
+            ctx.body = "foo";
+        })
+
+        app.use(router.routes());
+
+        // redirect
+        request(http.createServer(app.callback()))
+            .get('/X/y/z')
+            .expect(301)
+            .end(done);
+    });
+
+    it('findFixedPath 2', (done) => {
+        const app = new Koa();
+        const router = new Router({
+            redirectFixedPath: true
+        });
+
+        router.get('/x/y/z',async (ctx) => {
+            ctx.body = "foo";
+        })
+
+        app.use(router.routes());
+
+        // redirect
+        request(http.createServer(app.callback()))
+            .get('/X/Y/z')
+            .expect(301)
+            .end(done);
+    });
 })
