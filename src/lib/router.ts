@@ -23,6 +23,22 @@ interface Router {
     unlink(path: string, ...middleware: Middleware[]): Router;
 }
 
+interface ChildRouterParams {
+
+    path?: string;
+
+    middlewares?: Middleware[];
+
+}
+
+interface RootRouterParams extends ChildRouterParams {
+
+    redirectTrailingSlash?: boolean;
+
+    redirectFixedPath?: boolean;
+
+}
+
 class Router {
 
     // bastpath
@@ -38,16 +54,15 @@ class Router {
     // CaseInsensitive for redirect
     redirectFixedPath: boolean = false;
 
-    constructor(partial?: Partial<Router>) {
+    constructor(partial?: Partial<RootRouterParams>) {
         Object.assign(this, partial);
     }
 
     // create sub router
-    group(partial?: Partial<Router>): Router {
+    group(partial?: Partial<ChildRouterParams>): Router {
         return new Router({
+            ...this,
             ...partial,
-            trees: this.trees,
-            redirectFixedPath: this.redirectFixedPath,
         });
     }
 
@@ -147,19 +162,23 @@ class Router {
     }
 
     match(path: string, method: string): Value {
+
         const tree = this.trees.get(method);
 
         return tree ? tree.getValue(path) : { params: null, handlers: null, tsr: false };
+
     }
 
     findFixedPath(path: string, method: string): CaseInsensitiveValue {
+
         const tree = this.trees.get(method);
 
         return tree ? tree.findCaseInsensitivePath(path, true) : { ciPath: null, found: false };
+
     }
 }
 
-// create router verb  get post put delete
+// create router verb  get post put delete ...
 (methods as string[]).forEach(method => {
 
     Router.prototype[method] = function (path: string, ...middlewares: Middleware[]): Router {

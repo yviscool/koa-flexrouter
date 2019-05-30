@@ -54,9 +54,9 @@ var subRouter = router.group({
         async (ctx, next) => {
                 return next();
             },
-            async (ctx, next) => {
-                return next();
-            },
+        async (ctx, next) => {
+            return next();
+        },
     ]
 })
 
