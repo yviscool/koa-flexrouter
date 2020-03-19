@@ -1,4 +1,3 @@
-
 import * as methods from 'methods';
 import * as compose from 'koa-compose';
 import * as path from 'path';
@@ -89,7 +88,7 @@ class Router {
             return this.path;
         }
 
-        const finalPath = path.join(this.path, relativePath);
+        const finalPath = path.join(this.path, relativePath).replace(/\\/, '/');
         // 计算出绝对路径  basePath + relativePath =>   /bash/xxxx (如果relativePath以/结尾,那么 xxx后面也会以/结尾)
         const appendSlash = relativePath.slice(-1) == '/' && finalPath.slice(-1) != '/';
 
@@ -144,7 +143,9 @@ class Router {
 
                 } else if (router.redirectFixedPath) {
 
-                    const { ciPath, found } = router.findFixedPath(path.normalize(ctx.path), ctx.method);
+                    const normalizePath = path.normalize(ctx.path).replace(/\\/, '/');
+
+                    const { ciPath, found } = router.findFixedPath(normalizePath, ctx.method);
 
                     if (found) {
                         ctx.status = code;

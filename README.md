@@ -53,7 +53,7 @@ var subRouter = router.group({
     middlewares: [
         async (ctx, next) => {
                 return next();
-            },
+        },
         async (ctx, next) => {
             return next();
         },
