@@ -69,6 +69,7 @@
     "cov": "nyc mocha",
     "lint": "tslint --project . -c tslint.json",
     "cov:coveralls": "nyc mocha && nyc report --reporter=text-lcov | coveralls",
+    "codecov": "nyc mocha && nyc report --reporter=text-lcov > coverage.lcov",
     "test": "npm run lint -- --fix && mocha --opts test/mocha.opts",
     "build": "npm run clean && npm run tsc"
   }
