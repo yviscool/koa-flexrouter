@@ -24,6 +24,6 @@ jobs:
         npm run build
         npm run test
     - name: Code Coverage
-      run: npm run cov:coverall
+      run: npm run cov:coveralls
       env:
         CI: true
