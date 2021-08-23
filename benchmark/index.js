@@ -53,7 +53,11 @@ suite
         trees.getValue(path);
     })
     .add('find-my-way#topic-detail', () => {
-        myWayRouter.find('GET', path)
+        // myWayRouter.find('GET', path)
+        myWayRouter.lookup({
+            url: path,
+            method: 'GET'
+        }, {})
     })
     .on('cycle', (event) => {
         console.log(String(event.target))
