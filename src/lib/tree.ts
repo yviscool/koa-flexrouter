@@ -86,130 +86,130 @@ export class Tree {
 
         const fullPath = path;
 
-        if (n.path.length > 0 || n.children.length > 0) {
+        if (n.path === '' && n.indices === '') {
+            n.insertChild(numParams, path, fullPath, middlewares);
+            n.nType = NodeType.ROOT;
+            return;
+        }
 
-            walk: while (true) {
-                if (numParams > n.maxParams) {
-                    n.maxParams = numParams;
-                }
-                let i = 0;
-                const max = Math.min(path.length, n.path.length);
+        walk: while (true) {
+            if (numParams > n.maxParams) {
+                n.maxParams = numParams;
+            }
+            let i = 0;
+            const max = Math.min(path.length, n.path.length);
 
-                // Find the longest common index in `path` and `n.path`
-                while (i < max && path[i] == n.path[i]) {
-                    i++;
-                }
+            // Find the longest common index in `path` and `n.path`
+            while (i < max && path[i] == n.path[i]) {
+                i++;
+            }
 
-                // 没有公共部分，或者 公共部分 小于 n.path
-                if (i < n.path.length) {
-                    // 开始分裂，比如一开始path是user，新来了useradd，user是他们匹配的部分，
-                    // 那么会将user拿出来作为parent节点，
+            // 没有公共部分，或者 公共部分 小于 n.path
+            if (i < n.path.length) {
+                // 开始分裂，比如一开始path是user，新来了useradd，user是他们匹配的部分，
+                // 那么会将user拿出来作为parent节点，
 
-                    // 截取出非公共部分
-                    const child = new Tree({
-                        path: n.path.slice(i),
-                        wildChild: n.wildChild,
-                        indices: n.indices,
-                        children: n.children,
-                        handlers: n.handlers,
-                        priority: n.priority - 1,
-                    });
+                // 截取出非公共部分
+                const child = new Tree({
+                    path: n.path.slice(i),
+                    wildChild: n.wildChild,
+                    indices: n.indices,
+                    children: n.children,
+                    handlers: n.handlers,
+                    priority: n.priority - 1,
+                });
 
-                    child.children.forEach(tree => {
-                        if (tree.maxParams > child.maxParams) {
-                            child.maxParams = tree.maxParams;
-                        }
-                    });
+                child.children.forEach(tree => {
+                    if (tree.maxParams > child.maxParams) {
+                        child.maxParams = tree.maxParams;
+                    }
+                });
 
-                    n.children = [ child ];
-                    // 取出非公共部分的首字母
-                    n.indices = n.path[i];
-                    // 取出公共部分作为父级(如果没有公共部分，那么会是 '')
-                    n.path = path.slice(0, i);
-                    n.handlers = null;
-                    n.wildChild = false;
-                }
+                n.children = [ child ];
+                // 取出非公共部分的首字母
+                n.indices = n.path[i];
+                // 取出公共部分作为父级(如果没有公共部分，那么会是 '')
+                n.path = path.slice(0, i);
+                n.handlers = null;
+                n.wildChild = false;
+            }
 
-                // 没有公共部分 或者 公共部分 小于 path
-                if (i < path.length) {
+            // 没有公共部分 或者 公共部分 小于 path
+            if (i < path.length) {
 
-                    // 提取出非公共部分
-                    path = path.slice(i);
+                // 提取出非公共部分
+                path = path.slice(i);
 
-                    if (n.wildChild) {
+                if (n.wildChild) {
 
-                        n = n.children[0];
-                        n.priority++;
+                    n = n.children[0];
+                    n.priority++;
 
-                        if (numParams > n.maxParams) {
-                            n.maxParams = numParams;
-                        }
-
-                        numParams--;
-
-                        // Check if the wildcard matche
-                        if (path.length >= n.path.length && n.path == path.slice(0, n.path.length)) {
-                            // check for longer wildcard, e.g. :name and :names
-                            if (n.path.length >= path.length || path[n.path.length] == '/') {
-                                continue walk;
-                            }
-                        }
-
-                        let pathSeg = path;
-
-                        if (n.nType != NodeType.CATCHALL) {
-                            pathSeg = split2(path, '/')[0];
-                        }
-
-                        const prefix = fullPath.slice(0, fullPath.indexOf(pathSeg)) + n.path;
-
-                        throw new Error(`'${pathSeg}' in new path '${fullPath}' conflicts with existing wildcard '${n.path}' in existing prefix '${prefix}'`);
+                    if (numParams > n.maxParams) {
+                        n.maxParams = numParams;
                     }
 
-                    const c = path[0];
+                    numParams--;
 
-                    if (n.nType == NodeType.PARAM && c == '/' && n.children.length == 1) {
-                        n = n.children[0];
-                        n.priority++;
-                        continue walk;
-                    }
-
-                    for (let i = 0; i < n.indices.length; i++) {
-                        if (c == n.indices[i]) {
-                            i = n.incrementChildPrio(i);
-                            n = n.children[i];
+                    // Check if the wildcard matche
+                    if (path.length >= n.path.length && n.path == path.slice(0, n.path.length)) {
+                        // check for longer wildcard, e.g. :name and :names
+                        if (n.path.length >= path.length || path[n.path.length] == '/') {
                             continue walk;
                         }
                     }
 
-                    if (wildcards.indexOf(c) < 0) {
-                        n.indices += c;
-                        const child = new Tree({
-                            maxParams: numParams,
-                        });
+                    let pathSeg = path;
 
-                        n.children.push(child);
-                        n.incrementChildPrio(n.indices.length - 1);
-                        n = child;
+                    if (n.nType != NodeType.CATCHALL) {
+                        pathSeg = split2(path, '/')[0];
                     }
 
-                    n.insertChild(numParams, path, fullPath, middlewares);
+                    const prefix = fullPath.slice(0, fullPath.indexOf(pathSeg)) + n.path;
 
-                    return;
-
-                } else if (i == path.length) {
-                    if (n.handlers != null) {
-                        throw new Error(`handlers are already registerd for path '${fullPath}'`);
-                    }
-                    n.handlers = middlewares;
+                    throw new Error(`'${pathSeg}' in new path '${fullPath}' conflicts with existing wildcard '${n.path}' in existing prefix '${prefix}'`);
                 }
-                return;
-            }
 
-        } else {
-            n.insertChild(numParams, path, fullPath, middlewares);
-            n.nType = NodeType.ROOT;
+                const c = path[0];
+
+                if (n.nType == NodeType.PARAM && c == '/' && n.children.length == 1) {
+                    n = n.children[0];
+                    n.priority++;
+                    continue walk;
+                }
+
+                for (let i = 0; i < n.indices.length; i++) {
+                    if (c == n.indices[i]) {
+                        i = n.incrementChildPrio(i);
+                        n = n.children[i];
+                        continue walk;
+                    }
+                }
+
+                if (wildcards.indexOf(c) < 0) {
+                    n.indices += c;
+                    const child = new Tree({
+                        maxParams: numParams,
+                    });
+
+                    n.children.push(child);
+                    n.incrementChildPrio(n.indices.length - 1);
+                    n = child;
+                }
+
+                n.insertChild(numParams, path, fullPath, middlewares);
+
+                return;
+
+            } else if (i == path.length) {
+                if (n.handlers != null) {
+                    throw new Error(`handlers are already registerd for path '${fullPath}'`);
+                }
+                n.handlers = middlewares;
+            }
+            return;
         }
+
     }
 
     insertChild(numParams: number, path: string, fullPath: string, middlewares: Middleware[]) {
