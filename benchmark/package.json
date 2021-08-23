@@ -5,6 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "benchmark": "^2.1.4",
+    "find-my-way": "^4.3.3",
     "koa-flexrouter": "^0.9.7",
     "koa-router": "^7.4.0"
   }

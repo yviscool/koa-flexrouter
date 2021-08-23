@@ -28,10 +28,12 @@ for (let i = 0; i < 200; i++) {
 routes = [...new Set(routes)];
 
 const koaRouter = new require('koa-router')();
+const myWayRouter = require('find-my-way')()
 const flexRouter = new (require('koa-flexrouter').default)();
 
 routes.forEach(r => koaRouter.get(r, async (ctx) => { ctx.body = "zjl" }));
 routes.forEach(r => flexRouter.get(r, async (ctx) => { ctx.body = "zjl" }));
+routes.forEach(r => myWayRouter.on('GET', r, async (ctx) => { ctx.body = "zjl" }));
 
 
 // pick a random path to benchmark
@@ -49,6 +51,9 @@ suite
     })
     .add('flexrouter#topic-detail', () => {
         trees.getValue(path);
+    })
+    .add('find-my-way#topic-detail', () => {
+        myWayRouter.find('GET', path)
     })
     .on('cycle', (event) => {
         console.log(String(event.target))
